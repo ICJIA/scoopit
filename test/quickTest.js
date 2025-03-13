@@ -13,7 +13,7 @@ const { processRoutes } = require("../index");
 // Only run as standalone script, not when being imported by tests
 if (require.main === module) {
   const args = process.argv.slice(2);
-  const baseUrl = args[0] || "https://example.com";
+  const baseUrl = args[0] || "https://wikipedia.org";
   const route = args[1] || "/";
   const format = args[2] || "text";
 

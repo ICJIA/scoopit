@@ -56,7 +56,7 @@ output files in various formats (text, JSON, markdown).
 ${colors.magenta}Usage:${colors.reset}
   ${colors.bright}1. No-install mode:${colors.reset} ${colors.cyan}npx scoopit${colors.reset} ${colors.dim}[options]${colors.reset}
   ${colors.bright}2. Interactive mode:${colors.reset} ${colors.cyan}scoopit${colors.reset}
-  ${colors.bright}3. Single page:${colors.reset} ${colors.cyan}scoopit https://example.com/page [format]${colors.reset}
+  ${colors.bright}3. Single page:${colors.reset} ${colors.cyan}scoopit https://wikipedia.org/page [format]${colors.reset}
   ${colors.bright}4. Routes file:${colors.reset} ${colors.cyan}scoopit routes.json [format] [baseUrl]${colors.reset}
   ${colors.bright}5. Custom routes path:${colors.reset} ${colors.cyan}scoopit -routePath ./path/to/routes.json${colors.reset}
 `);

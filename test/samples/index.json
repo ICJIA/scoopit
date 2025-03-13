@@ -1,7 +1,0 @@
-{
-  "url": "https://yoursite.com/",
-  "route": "/",
-  "title": "Fallback for /",
-  "content": "This is fallback content for testing",
-  "createdAt": "2025-03-13T18:30:06.260Z"
-}

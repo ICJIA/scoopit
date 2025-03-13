@@ -19,7 +19,7 @@ const VALID_FORMATS = ["text", "json", "markdown", "all"]; // Valid output forma
 const APP_VERSION = require("./package.json").version;
 
 // Output directory location
-const OUTPUT_DIR = path.join(process.cwd(), "output");
+let OUTPUT_DIR = path.join(process.cwd(), "output");
 
 // Create output directory if it doesn't exist
 if (!fs.existsSync(OUTPUT_DIR)) {
@@ -236,12 +236,17 @@ async function generateFilesForRoute(baseUrl, route, format = DEFAULT_FORMAT) {
     throw new Error(`Invalid format: ${format}. Valid formats are: ${VALID_FORMATS.join(', ')}`);
   }
 
+  // Handle baseUrl as either string or object (from options)
+  const resolvedBaseUrl = typeof baseUrl === 'object' && baseUrl.baseUrl 
+    ? baseUrl.baseUrl 
+    : baseUrl;
+    
   // Normalize the route path
   const normalizedRoute = route.startsWith("/") ? route : `/${route}`;
-  const fullUrl = `${baseUrl}${normalizedRoute}`;
+  const fullUrl = `${resolvedBaseUrl}${normalizedRoute}`;
 
   const routeContext = logger.startOperation("generate_files_for_route", {
-    baseUrl,
+    baseUrl: resolvedBaseUrl,
     route: normalizedRoute,
     fullUrl,
     format,
@@ -461,11 +466,41 @@ async function loadRoutesFromFile(filePath) {
  * @param {string} format - The output format (text, json, markdown, or all)
  * @returns {Promise<Array>} - Array of results for testing purposes
  */
-async function processRoutes(
-  baseUrl = DEFAULT_BASE_URL,
-  routes = DEFAULT_ROUTES,
-  format = DEFAULT_FORMAT
-) {
+async function processRoutes(options = {}) {
+  // Handle options parameter to support both object and positional arguments
+  let baseUrl, routes, format, outputDir, quiet;
+  
+  if (typeof options === 'object') {
+    // Object parameter style
+    baseUrl = options.baseUrl || DEFAULT_BASE_URL;
+    
+    // Handle routePath if provided
+    if (options.routePath && typeof options.routePath === 'string') {
+      try {
+        routes = await loadRoutesFromFile(options.routePath);
+      } catch (error) {
+        logger.error(`Failed to load routes from path: ${options.routePath}`);
+        routes = DEFAULT_ROUTES;
+      }
+    } else {
+      routes = options.routes || DEFAULT_ROUTES;
+    }
+    
+    format = options.format || DEFAULT_FORMAT;
+    outputDir = options.outputDir;
+    quiet = options.quiet;
+  } else {
+    // Legacy positional parameters style
+    baseUrl = arguments[0] || DEFAULT_BASE_URL;
+    routes = arguments[1] || DEFAULT_ROUTES;
+    format = arguments[2] || DEFAULT_FORMAT;
+  }
+  
+  // Override OUTPUT_DIR if specified
+  if (outputDir) {
+    OUTPUT_DIR = outputDir;
+  }
+  
   // Input validation
   if (!baseUrl) {
     throw new Error('Base URL is required');
@@ -479,6 +514,11 @@ async function processRoutes(
   if (!VALID_FORMATS.includes(format)) {
     logger.warn(`Invalid format: ${format}. Using default format: ${DEFAULT_FORMAT}`);
   }
+
+  // Resolve the baseUrl if it's an object 
+  const resolvedBaseUrl = typeof baseUrl === 'object' && baseUrl.baseUrl 
+    ? baseUrl.baseUrl 
+    : baseUrl;
 
   logger.startup(APP_VERSION, {
     baseUrl,
@@ -500,7 +540,7 @@ async function processRoutes(
     });
 
     try {
-      const result = await generateFilesForRoute(baseUrl, route, validFormat);
+      const result = await generateFilesForRoute(resolvedBaseUrl, route, validFormat);
       if (result) {
         results.push(result);
       }
@@ -601,8 +641,12 @@ if (require.main === module) {
                          (args[2]) ? args[2] : DEFAULT_BASE_URL;
           
           try {
-            const routes = await loadRoutesFromFile(routesFilePath);
-            await processRoutes(baseUrl, routes, format);
+            // Use the new options object format
+            await processRoutes({
+              baseUrl: baseUrl,
+              routePath: routesFilePath,
+              format: format
+            });
             logger.info(`Successfully processed routes from file: ${routesFilePath}`);
           } catch (error) {
             console.error(`\x1b[31mError loading routes file: ${error.message}\x1b[0m`);
@@ -615,7 +659,12 @@ if (require.main === module) {
           const routes = args[1] ? JSON.parse(args[1]) : DEFAULT_ROUTES;
           const format = args[2] && VALID_FORMATS.includes(args[2]) ? args[2] : DEFAULT_FORMAT;
 
-          await processRoutes(baseUrl, routes, format);
+          // Use the new options object format
+          await processRoutes({
+            baseUrl: baseUrl,
+            routes: routes,
+            format: format
+          });
           logger.info("Successfully processed routes with default configuration");
         }
       }
@@ -625,7 +674,7 @@ if (require.main === module) {
       console.error(`╚═════════════════════════════════════════════════════════╝\x1b[0m`);
       console.error(`\x1b[31m${error.message}\x1b[0m`);
       console.error(`\x1b[33mUsage:\x1b[0m`);
-      console.error(`  1. Process single page: \x1b[36mnpx scoopit https://example.com/page\x1b[0m [format]`);
+      console.error(`  1. Process single page: \x1b[36mnpx scoopit https://wikipedia.org/page\x1b[0m [format]`);
       console.error(`  2. Use routes.json: \x1b[36mnpx scoopit\x1b[0m [format] [baseUrl]`);
       console.error(`  3. Specify custom routes file: \x1b[36mnpx scoopit -routePath path/to/routes.json\x1b[0m [format] [baseUrl]`);
       console.error(`  4. Process with inline routes: \x1b[36mnpx scoopit\x1b[0m [baseUrl] [routes] [format]`);

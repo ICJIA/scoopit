@@ -128,7 +128,7 @@ function printSummary() {
 async function runAllTests() {
   const startTime = Date.now();
   const verbose = process.env.SCOOPIT_VERBOSE === 'true';
-  const testSite = process.env.TEST_SITE || 'https://example.com';
+  const testSite = process.env.TEST_SITE || 'https://wikipedia.org';
 
   printHeader("SCOOPIT COMPLETE TEST SUITE");
   console.log(
@@ -183,10 +183,271 @@ async function runAllTests() {
   }
 }
 
+/**
+ * Collect debug information for easy copying
+ */
+function generateDebugInfo() {
+  const fs = require('fs');
+  const path = require('path');
+  
+  // Create a debug info object with test results
+  const debugInfo = {
+    testDate: new Date().toISOString(),
+    nodeVersion: process.version,
+    platform: process.platform,
+    packageVersion: require('../package.json').version,
+    testStatus: {
+      unitTests: results.unitTests,
+      comprehensiveTests: results.comprehensiveTests,
+      outputVerification: results.outputVerification,
+      liveTests: results.liveTests
+    },
+    errorReports: []
+  };
+  
+  // Try to read error logs and analyze them in detail
+  try {
+    // Read log file if it exists
+    const logDir = path.join(process.cwd(), 'logs');
+    const logFile = path.join(logDir, 'scoopit-test.log');
+    
+    debugInfo.detailedErrors = [];
+    
+    if (fs.existsSync(logFile)) {
+      const logContent = fs.readFileSync(logFile, 'utf8');
+      
+      // Extract error messages
+      const errorLines = logContent.split('\n')
+        .filter(line => line.includes('ERROR') || line.includes('Error:'))
+        .map(line => line.trim());
+      
+      // Count of errors by type
+      const errorCounts = {};
+      const errors = [];
+      
+      errorLines.forEach((line, index) => {
+        // Extract error type
+        const errorTypeMatch = line.match(/Error: (.*?)($|:)/);
+        const errorType = errorTypeMatch ? errorTypeMatch[1] : 'Unknown';
+        
+        // Extract more context from surrounding lines
+        const lineIndex = logContent.split('\n').findIndex(l => l.trim() === line);
+        const contextLines = lineIndex >= 0 
+          ? logContent.split('\n').slice(Math.max(0, lineIndex - 3), lineIndex + 4)
+          : [];
+          
+        // Create a detailed error object
+        const errorObj = {
+          id: `error${index + 1}`,
+          message: line,
+          type: errorType,
+          context: contextLines,
+          timestamp: new Date().toISOString()
+        };
+        
+        // Try to extract file path if present
+        const filePathMatch = line.match(/(?:file|path)(?:: | )([^:,\s]+)/i);
+        if (filePathMatch) {
+          errorObj.filePath = filePathMatch[1];
+        }
+        
+        // Try to extract line number if present
+        const lineNumMatch = line.match(/line (\d+)/i) || line.match(/:(\d+):/);
+        if (lineNumMatch) {
+          errorObj.lineNumber = parseInt(lineNumMatch[1], 10);
+        }
+        
+        // Try to extract URL if present
+        const urlMatch = line.match(/url: ['"]*([^'"]*)['"]*/) || 
+                        line.match(/https?:\/\/[^\s"')]+/);
+        if (urlMatch) {
+          errorObj.url = urlMatch[1] || urlMatch[0];
+        }
+        
+        // Record test stage if we can determine it
+        if (line.includes('test:unit') || contextLines.some(l => l.includes('test:unit'))) {
+          errorObj.stage = 'unit-tests';
+        } else if (line.includes('validation') || contextLines.some(l => l.includes('validation'))) {
+          errorObj.stage = 'validation';
+        } else if (line.includes('integration') || contextLines.some(l => l.includes('integration'))) {
+          errorObj.stage = 'integration-tests';
+        } else if (line.includes('live') || contextLines.some(l => l.includes('live'))) {
+          errorObj.stage = 'live-tests';
+        }
+        
+        errors.push(errorObj);
+        errorCounts[errorType] = (errorCounts[errorType] || 0) + 1;
+      });
+      
+      // Group related errors
+      const groupedErrors = [];
+      errors.forEach(error => {
+        // Check if we already have a similar error
+        const similarError = groupedErrors.find(ge => 
+          ge.type === error.type && 
+          (ge.filePath === error.filePath || ge.message.includes(error.message.substring(0, 30)))
+        );
+        
+        if (similarError) {
+          // Add this as an occurrence of the same error
+          if (!similarError.occurrences) {
+            similarError.occurrences = [];
+          }
+          similarError.occurrences.push({
+            message: error.message,
+            timestamp: error.timestamp
+          });
+          similarError.count = (similarError.count || 1) + 1;
+        } else {
+          groupedErrors.push(error);
+        }
+      });
+      
+      // Add detailed errors to debug info
+      debugInfo.errorCounts = errorCounts;
+      debugInfo.detailedErrors = groupedErrors.slice(0, 10); // Limit to 10 distinct errors
+      debugInfo.errorSummary = `Found ${errors.length} errors of ${groupedErrors.length} distinct types`;
+    }
+  } catch (err) {
+    debugInfo.logReadError = err.message;
+  }
+  
+  // File list summary
+  try {
+    const outputDir = path.join(process.cwd(), 'output');
+    if (fs.existsSync(outputDir)) {
+      debugInfo.files = {
+        output: fs.readdirSync(outputDir)
+      };
+      
+      const fileDetails = {};
+      
+      ['text', 'json', 'markdown'].forEach(format => {
+        const formatDir = path.join(outputDir, format);
+        if (fs.existsSync(formatDir)) {
+          const fileList = fs.readdirSync(formatDir);
+          debugInfo.files[format] = fileList;
+          
+          // Get detailed info for each file
+          fileList.forEach(filename => {
+            try {
+              const filePath = path.join(formatDir, filename);
+              const stats = fs.statSync(filePath);
+              
+              // For JSON files, try to parse to get URL and route info
+              if (format === 'json') {
+                try {
+                  const content = fs.readFileSync(filePath, 'utf8');
+                  const jsonData = JSON.parse(content);
+                  fileDetails[filename] = {
+                    format,
+                    size: stats.size,
+                    lastModified: stats.mtime,
+                    url: jsonData.url || null,
+                    route: jsonData.route || null,
+                    title: jsonData.title || null
+                  };
+                } catch (parseErr) {
+                  fileDetails[filename] = {
+                    format,
+                    size: stats.size,
+                    lastModified: stats.mtime,
+                    parseError: parseErr.message
+                  };
+                }
+              } else {
+                fileDetails[filename] = {
+                  format,
+                  size: stats.size,
+                  lastModified: stats.mtime
+                };
+              }
+            } catch (fileErr) {
+              fileDetails[filename] = {
+                format,
+                error: fileErr.message
+              };
+            }
+          });
+        }
+      });
+      
+      // Add all file details
+      debugInfo.fileDetails = fileDetails;
+      
+      // Also check samples directory
+      const samplesDir = path.join(process.cwd(), 'test', 'samples');
+      if (fs.existsSync(samplesDir)) {
+        debugInfo.files.samples = fs.readdirSync(samplesDir);
+      }
+    }
+  } catch (err) {
+    debugInfo.fileListError = err.message;
+  }
+  
+  // Add validation error details by scanning the test output files
+  try {
+    // Look for validation errors in the output files
+    const validationErrors = [];
+    
+    // Check if we need to analyze validation errors further
+    if (debugInfo.files && debugInfo.files.json) {
+      // Get the test site from environment
+      const testSite = process.env.TEST_SITE || 'https://wikipedia.org';
+      
+      // Analyze JSON files to find potential validation issues
+      const jsonFiles = debugInfo.fileDetails || {};
+      Object.entries(jsonFiles).forEach(([filename, details]) => {
+        if (details.format === 'json' && details.url) {
+          // Check for URL concatenation issues (common error in tests)
+          if (details.url.includes(testSite) && details.url.includes('http')) {
+            const urlParts = details.url.split('http');
+            if (urlParts.length > 2) {
+              validationErrors.push({
+                id: `validation_error_${validationErrors.length + 1}`,
+                type: 'URL_CONCATENATION',
+                file: filename,
+                fileFormat: 'json',
+                actualUrl: details.url,
+                expectedUrl: urlParts[urlParts.length - 1].startsWith('s:') 
+                  ? `https${urlParts[urlParts.length - 1]}` 
+                  : `http${urlParts[urlParts.length - 1]}`,
+                testSite,
+                message: 'URL contains concatenation error (double http)',
+                suggestedFix: 'Fix URL construction in tests to avoid concatenating base URL twice'
+              });
+            }
+          }
+        }
+      });
+    }
+    
+    // Add validation errors to debug info if any were found
+    if (validationErrors.length > 0) {
+      debugInfo.validationErrors = validationErrors;
+    }
+  } catch (validationErr) {
+    debugInfo.validationErrorAnalysis = validationErr.message;
+  }
+  
+  // Add identification and version info
+  debugInfo.debugInfoVersion = '1.1.0';
+  debugInfo.generated = new Date().toISOString();
+  
+  // Output as formatted JSON in a way that's easy to copy
+  console.log('\n\n======= SCOOPIT DEBUG INFORMATION (COPY BELOW) =======');
+  console.log('```json');
+  console.log(JSON.stringify(debugInfo, null, 2));
+  console.log('```');
+  console.log('======= END DEBUG INFORMATION =======\n');
+}
+
 // Run all tests if script is executed directly
 if (require.main === module) {
   runAllTests()
     .then((success) => {
+      // Generate debug info after tests finish, regardless of result
+      generateDebugInfo();
       process.exit(success ? 0 : 1);
     })
     .catch((error) => {
@@ -194,8 +455,10 @@ if (require.main === module) {
         `\n${colors.red}Test runner failed with an error:${colors.reset}`,
         error
       );
+      // Still generate debug info on error
+      generateDebugInfo();
       process.exit(1);
     });
 }
 
-module.exports = { runAllTests };
+module.exports = { runAllTests, generateDebugInfo };

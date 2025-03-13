@@ -30,7 +30,7 @@ describe("Content Processor Utilities", () => {
             <li>Item 1</li>
             <li>Item 2</li>
           </ul>
-          <a href="https://example.com">Example Link</a>
+          <a href="https://wikipedia.org">Example Link</a>
           <!-- This is a comment that should be removed -->
         </main>
         <script>
@@ -202,7 +202,7 @@ describe("Content Processor Utilities", () => {
           <li>Item 1</li>
           <li>Item 2</li>
         </ul>
-        <a href="https://example.com">Link</a>
+        <a href="https://wikipedia.org">Link</a>
       `;
 
       const markdown = convertToMarkdown(simpleHtml);
@@ -214,16 +214,16 @@ describe("Content Processor Utilities", () => {
       expect(markdown).to.include("*italic*");
       expect(markdown).to.include("- Item 1");
       expect(markdown).to.include("- Item 2");
-      expect(markdown).to.include("[Link](https://example.com)");
+      expect(markdown).to.include("[Link](https://wikipedia.org)");
     });
 
     it("should preserve links in markdown", () => {
       const htmlWithLink = `
-        <p>Visit <a href="https://example.com">Example</a> for more information.</p>
+        <p>Visit <a href="https://wikipedia.org">Example</a> for more information.</p>
       `;
 
       const markdown = convertToMarkdown(htmlWithLink);
-      expect(markdown).to.include("[Example](https://example.com)");
+      expect(markdown).to.include("[Example](https://wikipedia.org)");
     });
 
     it("should handle null or empty input", () => {

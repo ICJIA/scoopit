@@ -71,6 +71,7 @@ const testSite = testSiteArg ? testSiteArg.split('=')[1] : 'https://icjia.illino
 const config = {
   outputDir: path.join(process.cwd(), "output"),
   testSite: testSite,
+  samplesDir: path.join(process.cwd(), "test", "samples"),
   testRoutes: ["/", "/about"],  // Simple routes for testing
   formats: ["text", "json", "markdown"],
 };
@@ -216,7 +217,7 @@ async function runIntegrationTests() {
 
     // Create a temporary routes.json file for testing
     const tempRoutesPath = path.join(process.cwd(), 'temp-routes.json');
-    fs.writeFileSync(tempRoutesPath, JSON.stringify(config.testRoutes.map(route => route), null, 2));
+    fs.writeFileSync(tempRoutesPath, JSON.stringify(config.testRoutes, null, 2));
 
     if (verbosity >= VERBOSITY.NORMAL) {
       console.log(`${colors.dim}Created temporary routes file at: ${tempRoutesPath}${colors.reset}`);
@@ -650,13 +651,29 @@ async function runTests() {
           let copiedCount = 0;
           
           for (const file of files) {
+            if (!file || typeof file !== 'string') {
+              console.log(`${colors.yellow}Warning: Invalid file name, skipping: ${file}${colors.reset}`);
+              continue;
+            }
+            
             const sourcePath = path.join(config.outputDir, file);
+            
+            // Make sure config.samplesDir is defined
+            if (!config.samplesDir) {
+              console.error(`${colors.red}Error: Samples directory path is undefined${colors.reset}`);
+              break;
+            }
+            
             const destPath = path.join(config.samplesDir, file);
             
             // Skip directories, only copy files
-            if (fs.statSync(sourcePath).isFile()) {
-              await fs.copyFile(sourcePath, destPath);
-              copiedCount++;
+            try {
+              if (fs.existsSync(sourcePath) && fs.statSync(sourcePath).isFile()) {
+                await fs.copyFile(sourcePath, destPath);
+                copiedCount++;
+              }
+            } catch (copyError) {
+              console.log(`${colors.yellow}Warning: Failed to copy ${file}: ${copyError.message}${colors.reset}`);
             }
           }
           

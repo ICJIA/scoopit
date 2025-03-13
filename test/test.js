@@ -82,9 +82,9 @@ describe("ScoopIt Content Generator", function () {
   describe("fetchContent()", () => {
     it("should fetch content from a URL", async () => {
       // Mock HTTP request
-      nock("https://example.com").get("/test").reply(200, sampleHtml);
+      nock("https://wikipedia.org").get("/test").reply(200, sampleHtml);
 
-      const content = await fetchContent("https://example.com/test");
+      const content = await fetchContent("https://wikipedia.org/test");
       expect(content).to.be.a("string");
       expect(content).to.include("<title>Test Page</title>");
       expect(content).to.include("This is the main content");
@@ -92,12 +92,12 @@ describe("ScoopIt Content Generator", function () {
 
     it("should return null for failed requests", async () => {
       // Mock HTTP request with error
-      nock("https://example.com").get("/nonexistent").reply(404);
+      nock("https://wikipedia.org").get("/nonexistent").reply(404);
 
       // Stub console.error to suppress error output
       sinon.stub(console, "error");
 
-      const content = await fetchContent("https://example.com/nonexistent");
+      const content = await fetchContent("https://wikipedia.org/nonexistent");
       expect(content).to.be.null;
 
       console.error.restore();
@@ -107,9 +107,9 @@ describe("ScoopIt Content Generator", function () {
   describe("generateFilesForRoute()", () => {
     it("should generate files for a route in text format", async () => {
       // Mock HTTP request
-      nock("https://example.com").get("/test").reply(200, sampleHtml);
+      nock("https://wikipedia.org").get("/test").reply(200, sampleHtml);
 
-      await generateFilesForRoute("https://example.com", "/test", "text");
+      await generateFilesForRoute("https://wikipedia.org", "/test", "text");
 
       // Check if text file was created
       const textFiles = fs.readdirSync(path.join(testOutputDir, "text"));
@@ -129,9 +129,9 @@ describe("ScoopIt Content Generator", function () {
 
     it("should generate files for a route in json format", async () => {
       // Mock HTTP request
-      nock("https://example.com").get("/test").reply(200, sampleHtml);
+      nock("https://wikipedia.org").get("/test").reply(200, sampleHtml);
 
-      await generateFilesForRoute("https://example.com", "/test", "json");
+      await generateFilesForRoute("https://wikipedia.org", "/test", "json");
 
       // Check if json file was created
       const jsonFiles = fs.readdirSync(path.join(testOutputDir, "json"));
@@ -141,7 +141,7 @@ describe("ScoopIt Content Generator", function () {
 
       // Check content of json file
       const jsonContent = require(jsonFilePath);
-      expect(jsonContent).to.have.property("url", "https://example.com/test");
+      expect(jsonContent).to.have.property("url", "https://wikipedia.org/test");
       expect(jsonContent).to.have.property("route", "/test");
       expect(jsonContent).to.have.property("title", "Test Page");
       expect(jsonContent).to.have.property(
@@ -158,9 +158,9 @@ describe("ScoopIt Content Generator", function () {
 
     it("should generate files for a route in all formats", async () => {
       // Mock HTTP request
-      nock("https://example.com").get("/test").reply(200, sampleHtml);
+      nock("https://wikipedia.org").get("/test").reply(200, sampleHtml);
 
-      await generateFilesForRoute("https://example.com", "/test", "all");
+      await generateFilesForRoute("https://wikipedia.org", "/test", "all");
 
       // Check if all format files were created
       const textFiles = fs.readdirSync(path.join(testOutputDir, "text"));
@@ -177,14 +177,14 @@ describe("ScoopIt Content Generator", function () {
   describe("processRoutes()", () => {
     it("should process multiple routes", async () => {
       // Mock HTTP requests
-      nock("https://example.com")
+      nock("https://wikipedia.org")
         .get("/route1")
         .reply(200, sampleHtml)
         .get("/route2")
         .reply(200, sampleHtml);
 
       const results = await processRoutes(
-        "https://example.com",
+        "https://wikipedia.org",
         ["/route1", "/route2"],
         "text"
       );
@@ -217,13 +217,13 @@ describe("ScoopIt Content Generator", function () {
 
     it("should handle invalid format by using default format", async () => {
       // Mock HTTP request
-      nock("https://example.com").get("/test").reply(200, sampleHtml);
+      nock("https://wikipedia.org").get("/test").reply(200, sampleHtml);
 
       // Stub console.error to suppress error output
       sinon.stub(console, "error");
 
       const results = await processRoutes(
-        "https://example.com",
+        "https://wikipedia.org",
         ["/test"],
         "invalid-format"
       );

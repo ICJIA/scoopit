@@ -125,16 +125,26 @@ const extendedLogger = {
     });
   },
 
-  // Log a failed HTTP request
+  // Log a failed HTTP request with improved error handling
   httpError: function (url, error, details = {}) {
-    logger.error(`HTTP Error: ${url} - ${error.message}`, {
-      url,
-      error: {
-        message: error.message,
-        code: error.code,
-        stack: error.stack,
-      },
-      ...details,
+    // Handle potentially undefined error objects
+    const errorMessage = error && error.message ? error.message : 'Unknown error';
+    
+    // Create a safe error object with null checks
+    const safeErrorObj = {
+      message: errorMessage,
+      code: error && error.code ? error.code : 'UNKNOWN'
+    };
+    
+    // Only add stack trace in non-production environments
+    if (process.env.NODE_ENV !== 'production' && error && error.stack) {
+      safeErrorObj.stack = error.stack;
+    }
+    
+    logger.error(`HTTP Error: ${url} - ${errorMessage}`, {
+      url: url || 'unknown-url',
+      error: safeErrorObj,
+      ...(typeof details === 'object' ? details : {})
     });
   },
 

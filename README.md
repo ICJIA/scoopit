@@ -32,9 +32,7 @@ A medical research organization created a tool to help doctors stay current with
 
 By using ScoopIt to clean and structure the data before sending it to the LLM, the system achieved significantly higher accuracy in medical domain knowledge.
 
-### Why ScoopIt is Essential for AI Development
-
-Modern AI development with LLMs faces key challenges that ScoopIt directly addresses:
+## Scoopit Overview
 
 #### 1. Content Quality and Structure
 
@@ -534,9 +532,77 @@ LOG_LEVEL=debug npm start
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+## Testing
+
+ScoopIt includes a comprehensive testing system with multiple options for running tests, from full test suites to individual component tests.
+
+### Running the Complete Test Suite
+
+To run the full test suite with all test types:
+
+```bash
+# Run all tests with standard output
+npm run test:all
+
+# Run all tests with verbose output
+npm run test:all-verbose
+```
+
+### Running Specific Test Types
+
+You can run specific types of tests:
+
+```bash
+# Run only unit tests
+npm run test:unit
+
+# Run only integration tests
+npm run test:integration
+
+# Run only output validation tests
+npm run test:validation
+
+# Run live tests against a real website
+npm run test:live
+
+# Run live tests with a specific site
+npm run test:live-site
+```
+
+### Enhanced Test Runner
+
+ScoopIt provides an enhanced test runner with improved output formatting, progress indicators, and comprehensive statistics:
+
+```bash
+# Run enhanced test runner with all tests
+node scripts/enhancedTestRunner.js
+
+# Run with specific test types
+node scripts/enhancedTestRunner.js --unit-only
+node scripts/enhancedTestRunner.js --integration-only
+node scripts/enhancedTestRunner.js --validation-only
+
+# Run with a specific test site
+node scripts/enhancedTestRunner.js --test-site=https://example.com
+
+# Skip content validation (only check file existence)
+node scripts/enhancedTestRunner.js --skip-validation
+```
+
+### File Existence Checker
+
+For quick verification of output files without running full tests, use the file existence checker:
+
+```bash
+# Check if output files exist and have content
+node scripts/fileExistenceChecker.js
+```
+
+This tool will check the output directory for files in all formats (text, JSON, markdown) and verify that files exist and have content, without validating the specific content.
+
 ### Running the Interactive Test Runner
 
-ScoopIt comes with an interactive test runner that allows you to choose which tests to run:
+ScoopIt also includes an interactive test runner that allows you to choose which tests to run:
 
 ```bash
 # Run the interactive test selector

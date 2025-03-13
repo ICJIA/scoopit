@@ -11,7 +11,8 @@
     "src/**/*",
     "utils/**/*",
     "scripts/makeExecutable.js",
-    "scripts/runSelectedTests.js"
+    "scripts/runSelectedTests.js",
+    ".nvmrc"
   ],
   "engines": {
     "node": ">=14.0.0"

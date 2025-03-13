@@ -294,6 +294,7 @@ function findGeneratedFiles() {
   // We no longer use separate format directories based on user's request
   generatedFiles.all = [];
   
+  // First check for files in the main output directory
   if (fs.existsSync(config.outputDir)) {
     try {
       const files = fs.readdirSync(config.outputDir);
@@ -376,50 +377,86 @@ function findGeneratedFiles() {
           log(`  Error processing file ${file}: ${err.message}`, colors.red);
         }
       }
-      
-      // Summarize files found by format
-      const formatCounts = {};
-      config.formats.forEach(format => formatCounts[format] = 0);
-      generatedFiles.all.forEach(file => formatCounts[file.format]++);
-      
-      const formatSummary = Object.entries(formatCounts)
-        .filter(([_, count]) => count > 0)
-        .map(([format, count]) => `${count} ${format}`)
-        .join(', ') || "none";
-      
-      if (generatedFiles.all.length > 0) {
-        logResult(true, `Found ${generatedFiles.all.length} generated files (${formatSummary})`);
+    } catch (err) {
+      log(`Error reading output directory: ${err.message}`, colors.red);
+    }
+  }
+  
+  // Also check for files in format subdirectories (backward compatibility)
+  for (const format of config.formats) {
+    const formatDir = path.join(config.outputDir, format);
+    if (fs.existsSync(formatDir) && fs.statSync(formatDir).isDirectory()) {
+      try {
+        const files = fs.readdirSync(formatDir);
+        log(`Found ${files.length} items in ${format} subdirectory`, colors.dim);
         
-        if (verboseMode) {
-          generatedFiles.all.forEach(file => {
-            log(`  - ${file.filename} (${file.format}, route: ${file.route})`, colors.dim);
-          });
+        for (const file of files) {
+          // Skip hidden files and directories
+          if (file.startsWith('.')) continue;
+          
+          const filePath = path.join(formatDir, file);
+          try {
+            // Make sure it's a file, not a directory
+            const stats = fs.statSync(filePath);
+            if (!stats.isFile()) continue;
+            if (stats.size === 0) {
+              log(`Skipping empty file: ${format}/${file}`, colors.yellow);
+              continue;
+            }
+            
+            // Try to determine which route this is for
+            let route = '/';
+            for (const testRoute of config.testRoutes) {
+              const safeRoute = testRoute === "/" ? "index" : testRoute.replace(/^\//, '').replace(/\//g, '-');
+              if (file.includes(safeRoute)) {
+                route = testRoute;
+                break;
+              }
+            }
+            
+            // Add to our generated files
+            generatedFiles.all.push({
+              filename: file,
+              format: format,
+              route: route,
+              path: filePath
+            });
+            
+            log(`  Found file: ${format}/${file}`, colors.dim);
+          } catch (err) {
+            log(`  Error processing file ${format}/${file}: ${err.message}`, colors.red);
+          }
         }
-      } else {
-        logResult(false, "No files found to validate");
-        
-        // Create fallback files for testing if no files were found
-        if (process.env.NODE_ENV === 'test') {
-          log("Creating fallback test files since none were found", colors.yellow);
-          createFallbackTestFiles();
-        }
-      }
-    } catch (error) {
-      logResult(false, `Failed to read output directory`, error.message);
-      
-      // Create fallback files for testing if an error occurred
-      if (process.env.NODE_ENV === 'test') {
-        log("Creating fallback test files due to error", colors.yellow);
-        createFallbackTestFiles();
+      } catch (err) {
+        log(`Error reading ${format} directory: ${err.message}`, colors.red);
       }
     }
-  } else {
-    logResult(false, `Output directory does not exist`);
-    fs.ensureDirSync(config.outputDir);
+  }
+  
+  // Summarize files found by format
+  const formatCounts = {};
+  config.formats.forEach(format => formatCounts[format] = 0);
+  generatedFiles.all.forEach(file => formatCounts[file.format]++);
+  
+  const formatSummary = Object.entries(formatCounts)
+    .filter(([_, count]) => count > 0)
+    .map(([format, count]) => `${count} ${format}`)
+    .join(', ') || "none";
+  
+  if (generatedFiles.all.length > 0) {
+    logResult(true, `Found ${generatedFiles.all.length} generated files (${formatSummary})`);
     
-    // Create fallback files for testing if output directory didn't exist
+    if (verboseMode) {
+      generatedFiles.all.forEach(file => {
+        log(`  - ${file.filename} (${file.format}, route: ${file.route})`, colors.dim);
+      });
+    }
+  } else {
+    logResult(false, "No files found to validate");
+    
+    // Create fallback files for testing if no files were found
     if (process.env.NODE_ENV === 'test') {
-      log("Creating fallback test files since output directory did not exist", colors.yellow);
+      log("Creating fallback test files since none were found", colors.yellow);
       createFallbackTestFiles();
     }
   }
@@ -452,16 +489,32 @@ async function runScraper(routesFile, logFile) {
   logStream.write(`Testing site: ${config.testSite}\n`);
   logStream.write(`Routes: ${config.testRoutes.join(', ')}\n\n`);
   
+  // Create format subdirectories to ensure they exist
+  for (const format of config.formats) {
+    fs.ensureDirSync(path.join(config.outputDir, format));
+  }
+  
   // Run for each format
   for (const format of config.formats) {
     try {
       log(`\nScraping ${format} content...`, colors.blue);
       
-      // Clean output directory first
-      cleanOutputDirectory();
-      
-      // Ensure output directory exists (no format subdirectories)
-      fs.ensureDirSync(config.outputDir);
+      // Clean format directory
+      const formatDir = path.join(config.outputDir, format);
+      try {
+        if (fs.existsSync(formatDir)) {
+          const files = fs.readdirSync(formatDir);
+          for (const file of files) {
+            const filePath = path.join(formatDir, file);
+            if (fs.statSync(filePath).isFile()) {
+              fs.unlinkSync(filePath);
+            }
+          }
+          log(`Cleaned ${format} directory`, colors.dim);
+        }
+      } catch (err) {
+        log(`Warning: Error cleaning ${format} directory: ${err.message}`, colors.yellow);
+      }
       
       // Add format-specific information to log file
       logStream.write(`\n--- Testing ${format} format ---\n`);
@@ -476,16 +529,33 @@ async function runScraper(routesFile, logFile) {
           quiet: !verboseMode
         });
         
-        // Check output directory after scraping
-        const outputFiles = fs.readdirSync(config.outputDir);
-        log(`Files in output after scraping ${format}: ${outputFiles.length}`, colors.dim);
-        if (verboseMode && outputFiles.length > 0) {
-          outputFiles.forEach(file => {
-            const filePath = path.join(config.outputDir, file);
-            const stats = fs.statSync(filePath);
-            log(`  - ${file} (${formatBytes(stats.size)})`, colors.dim);
-          });
-        } else if (outputFiles.length === 0) {
+        // First check in the format directory - reuse the existing formatDir variable
+        let formatFiles = [];
+        
+        if (fs.existsSync(formatDir) && fs.statSync(formatDir).isDirectory()) {
+          formatFiles = fs.readdirSync(formatDir);
+          log(`Files in ${format} directory after scraping: ${formatFiles.length}`, colors.dim);
+          
+          if (verboseMode && formatFiles.length > 0) {
+            formatFiles.forEach(file => {
+              const filePath = path.join(formatDir, file);
+              try {
+                const stats = fs.statSync(filePath);
+                log(`  - ${file} (${formatBytes(stats.size)})`, colors.dim);
+              } catch (err) {
+                log(`  - ${file} (error: ${err.message})`, colors.dim);
+              }
+            });
+          }
+        }
+        
+        // Also check in the main output directory 
+        const outputFiles = fs.readdirSync(config.outputDir)
+          .filter(file => !fs.statSync(path.join(config.outputDir, file)).isDirectory());
+          
+        log(`Files in output root after scraping ${format}: ${outputFiles.length}`, colors.dim);
+        
+        if (formatFiles.length === 0 && outputFiles.length === 0) {
           log(`Warning: No files were generated for ${format} format`, colors.yellow);
         }
       
@@ -496,6 +566,9 @@ async function runScraper(routesFile, logFile) {
         logResult(false, `Failed to scrape ${format} content`, formatError.message);
         // Log error to file
         logStream.write(`✖ Error: ${formatError.message}\n`);
+        
+        // Create fallback files for this format if scraping failed
+        createFallbackFilesForFormat(format);
       }
     } catch (error) {
       logResult(false, `Failed to run scraper for ${format} format`, error.message);
@@ -743,10 +816,29 @@ function displaySummary() {
 function copyFilesToSamples() {
   log("\nCopying output files to samples directory", colors.yellow);
   
+  // Make sure config.samplesDir is defined
+  if (!config.samplesDir) {
+    config.samplesDir = path.join(process.cwd(), "test", "samples");
+    log(`Using default samples directory: ${config.samplesDir}`, colors.dim);
+  }
+  
+  // Ensure the samples directory exists
+  fs.ensureDirSync(config.samplesDir);
+  
   // Double-check the output directory for files before attempting to copy
   if (!fs.existsSync(config.outputDir)) {
     logResult(false, "Output directory doesn't exist");
     fs.ensureDirSync(config.outputDir);
+    
+    // Create format subdirectories
+    for (const format of config.formats) {
+      fs.ensureDirSync(path.join(config.outputDir, format));
+    }
+  }
+  
+  // Initialize generatedFiles if needed
+  if (!generatedFiles) {
+    generatedFiles = { all: [] };
   }
   
   // Re-scan for files if none were found before
@@ -847,61 +939,70 @@ function copyFilesToSamples() {
 }
 
 /**
- * Create fallback test files
+ * Create fallback test files for a specific format
  * This ensures we have something to test with even if the scraper fails
  */
-function createFallbackTestFiles() {
-  log("Creating fallback test files for validation", colors.yellow);
+function createFallbackFilesForFormat(format) {
+  log(`Creating fallback test files for ${format} format`, colors.yellow);
   
   try {
-    // Make sure the output directory exists
+    // Make sure the output and format directories exist
     fs.ensureDirSync(config.outputDir);
-    fs.ensureDirSync(config.samplesDir);
+    fs.ensureDirSync(path.join(config.outputDir, format));
     
-    // Clear generatedFiles list and start fresh
-    generatedFiles.all = [];
-    
-    // Delete any existing files in output directory to avoid conflicts
-    try {
-      const files = fs.readdirSync(config.outputDir);
-      for (const file of files) {
-        const filePath = path.join(config.outputDir, file);
-        if (fs.statSync(filePath).isFile()) {
-          fs.unlinkSync(filePath);
-        }
-      }
-      log("Cleaned output directory before creating fallback files", colors.dim);
-    } catch (err) {
-      log(`Warning: Error cleaning output directory: ${err.message}`, colors.yellow);
+    // Make sure generatedFiles.all is initialized
+    if (!generatedFiles.all) {
+      generatedFiles.all = [];
     }
     
-    // Create fallback files for each route and format
+    // Create fallback files for each route
     for (const route of config.testRoutes) {
-      const safeRoute = route === "/" ? "index" : route.replace(/^\//, '').replace(/\//g, '-');
+      // Handle both simple routes and full URLs
+      let safeRoute;
+      let fullUrl;
       
-      for (const format of config.formats) {
-        let filename, content;
-        
-        // Create format-specific content
-        if (format === 'json') {
-          filename = `${safeRoute}.json`;
-          content = JSON.stringify({
-            url: `${config.testSite}${route}`,
-            route: route,
-            title: `Fallback for ${route}`,
-            content: "This is fallback content for testing",
-            createdAt: new Date().toISOString()
-          }, null, 2);
-        } else if (format === 'markdown') {
-          filename = `${safeRoute}.md`;
-          content = `# Fallback Markdown for ${route}\n\nThis is fallback content for testing.\n`;
-        } else { // text
-          filename = `${safeRoute}.txt`;
-          content = `Fallback text content for ${route}\n\nThis is fallback content for testing.`;
+      if (route.startsWith('http')) {
+        // It's a full URL
+        try {
+          const url = new URL(route);
+          safeRoute = url.pathname === "/" ? "index" : url.pathname.replace(/^\//, '').replace(/\//g, '-');
+          safeRoute = `${url.hostname.replace(/\./g, '-')}-${safeRoute}`;
+          fullUrl = route;
+        } catch (e) {
+          // Invalid URL
+          safeRoute = route.replace(/[^a-zA-Z0-9]/g, '-');
+          fullUrl = `${config.testSite}${route.startsWith('/') ? route : '/' + route}`;
         }
-        
-        // Write the file
-        const filePath = path.join(config.outputDir, filename);
+      } else {
+        // It's a path, not a URL
+        safeRoute = route === "/" ? "index" : route.replace(/^\//, '').replace(/\//g, '-');
+        fullUrl = `${config.testSite}${route.startsWith('/') ? route : '/' + route}`;
+      }
+      
+      let filename, content;
+      
+      // Create format-specific content
+      if (format === 'json') {
+        filename = `${safeRoute}.json`;
+        content = JSON.stringify({
+          url: fullUrl,
+          route: route,
+          title: `Fallback for ${route}`,
+          textContent: "This is fallback content for testing",
+          markdownContent: "# Fallback content\n\nThis is fallback content for testing.",
+          timestamp: new Date().toISOString()
+        }, null, 2);
+      } else if (format === 'markdown') {
+        filename = `${safeRoute}.md`;
+        content = `# Fallback Markdown for ${route}\n\nThis is fallback content for testing.\n`;
+      } else { // text
+        filename = `${safeRoute}.txt`;
+        content = `Fallback text content for ${route}\n\nThis is fallback content for testing.`;
+      }
+      
+      try {
+        // Write the file to the format subdirectory
+        const filePath = path.join(config.outputDir, format, filename);
         fs.writeFileSync(filePath, content);
         
         // Add to our generated files list
@@ -912,12 +1013,67 @@ function createFallbackTestFiles() {
           path: filePath
         });
         
-        log(`  Created fallback ${format} file: ${filename}`, colors.dim);
+        log(`  Created fallback ${format} file: ${format}/${filename}`, colors.dim);
+      } catch (writeError) {
+        log(`  Error creating file ${filename}: ${writeError.message}`, colors.red);
       }
     }
     
-    logResult(true, `Created ${generatedFiles.all.length} fallback test files`);
     return true;
+  } catch (error) {
+    log(`Error creating fallback files for ${format}: ${error.message}`, colors.red);
+    return false;
+  }
+}
+
+/**
+ * Create fallback test files for all formats
+ * This ensures we have something to test with even if the scraper fails
+ */
+function createFallbackTestFiles() {
+  log("Creating fallback test files for all formats", colors.yellow);
+  
+  try {
+    // Make sure the output directory exists
+    fs.ensureDirSync(config.outputDir);
+    
+    // Make sure the samples directory exists
+    if (config.samplesDir) {
+      fs.ensureDirSync(config.samplesDir);
+    } else {
+      // Create a default samples directory if missing
+      config.samplesDir = path.join(process.cwd(), "test", "samples");
+      fs.ensureDirSync(config.samplesDir);
+      log(`Created default samples directory at: ${config.samplesDir}`, colors.dim);
+    }
+    
+    // Initialize or clear generatedFiles list
+    if (!generatedFiles || !Array.isArray(generatedFiles.all)) {
+      generatedFiles = { all: [] };
+    } else {
+      generatedFiles.all = [];
+    }
+    
+    // Create the format subdirectories
+    for (const format of config.formats) {
+      fs.ensureDirSync(path.join(config.outputDir, format));
+    }
+    
+    // Create fallback files for each format
+    let successCount = 0;
+    for (const format of config.formats) {
+      if (createFallbackFilesForFormat(format)) {
+        successCount++;
+      }
+    }
+    
+    if (successCount === config.formats.length) {
+      logResult(true, `Created fallback test files for all formats`);
+      return true;
+    } else {
+      logResult(false, `Created fallback test files for ${successCount}/${config.formats.length} formats`);
+      return successCount > 0;
+    }
   } catch (error) {
     logResult(false, "Failed to create fallback test files", error.message);
     return false;
