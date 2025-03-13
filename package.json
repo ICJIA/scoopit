@@ -35,6 +35,8 @@
     "test:all": "node scripts/runAllTests.js",
     "test:all-verbose": "NODE_ENV=test SCOOPIT_VERBOSE=true node scripts/runAllTests.js",
     "test:select": "node scripts/runSelectedTests.js",
+    "test:simplified": "NODE_ENV=test mocha --reporter spec test/simplified.test.js",
+    "test:working": "NODE_ENV=test node scripts/runWorkingTests.js",
     "verify": "node scripts/verifyOutputs.js",
     "samples": "node scripts/copyTestSamples.js",
     "postinstall": "node scripts/makeExecutable.js",

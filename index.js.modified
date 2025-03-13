@@ -18,84 +18,23 @@ const VALID_FORMATS = ["text", "json", "markdown", "all"]; // Valid output forma
 // Application version
 const APP_VERSION = require("./package.json").version;
 
-// Output directory location
-let OUTPUT_DIR = path.join(process.cwd(), "output");
-
-// Create output directory if it doesn't exist
-if (!fs.existsSync(OUTPUT_DIR)) {
-  fs.ensureDirSync(OUTPUT_DIR);
-  logger.fileSystem("created", OUTPUT_DIR, { recursive: true });
-}
+// Output directory reference is kept but no longer used for file operations
+const OUTPUT_DIR = path.join(process.cwd(), "output");
 
 /**
- * Asks the user if they want to delete previous output files
- * @returns {Promise<boolean>} - True if user wants to delete previous files, false otherwise
+ * Stub function for backward compatibility - no longer asks about deleting files
+ * @returns {Promise<boolean>} - Always returns false
  */
 async function shouldDeletePreviousOutputs() {
-  // Skip user prompt in test mode
-  if (process.env.NODE_ENV === 'test') {
-    return false;
-  }
-  
-  // Check if output directory already has content
-  const outputDirs = ['text', 'json', 'markdown'].map(dir => path.join(OUTPUT_DIR, dir));
-  let hasExistingOutput = false;
-  
-  for (const dir of outputDirs) {
-    if (fs.existsSync(dir)) {
-      const files = fs.readdirSync(dir);
-      if (files.length > 0) {
-        hasExistingOutput = true;
-        break;
-      }
-    }
-  }
-  
-  // If no existing output, no need to ask
-  if (!hasExistingOutput) {
-    return false;
-  }
-  
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-  
-  const answer = await new Promise(resolve => {
-    rl.question('Previous output files detected. Delete them before proceeding? (y/N): ', response => {
-      rl.close();
-      resolve(response.toLowerCase());
-    });
-  });
-  
-  return answer === 'y' || answer === 'yes';
+  return false;
 }
 
 /**
- * Deletes previous output files but preserves logs
+ * Stub function for backward compatibility - no longer deletes files
  * @returns {Promise<void>}
  */
 async function deletePreviousOutputs() {
-  logger.info('Deleting previous output files');
-  
-  // Directories to clean (but not the log directory)
-  const outputDirs = ['text', 'json', 'markdown'].map(dir => path.join(OUTPUT_DIR, dir));
-  
-  for (const dir of outputDirs) {
-    if (fs.existsSync(dir)) {
-      try {
-        await fs.emptyDir(dir);
-        logger.fileSystem("emptied", dir);
-      } catch (error) {
-        logger.error(`Failed to empty directory ${dir}: ${error.message}`);
-      }
-    } else {
-      fs.ensureDirSync(dir);
-      logger.fileSystem("created", dir);
-    }
-  }
-  
-  logger.info('Previous output files deleted');
+  logger.info('File download functionality has been removed');
 }
 
 /**
@@ -312,52 +251,35 @@ async function generateFilesForRoute(baseUrl, route, format = DEFAULT_FORMAT) {
 
     // Create the appropriate output directories as needed
     try {
-      // Write files based on format
+      // Log processing info but don't write files to disk
       if (format === "json" || format === "all") {
-        const jsonDir = path.join(OUTPUT_DIR, "json");
-        await fs.ensureDir(jsonDir);
-
-        const jsonFilePath = path.join(jsonDir, `${safeFilename}.json`);
-        await fs.writeFile(jsonFilePath, JSON.stringify(jsonData, null, 2));
-
-        logger.fileSystem("write", jsonFilePath, {
+        logger.info(`Processed content in JSON format for ${normalizedRoute}`);
+        
+        logger.debug("JSON data prepared", {
           format: "json",
           size: Buffer.byteLength(JSON.stringify(jsonData, null, 2)),
+          route: normalizedRoute
         });
-
-        logger.info(`Generated JSON file: output/json/${safeFilename}.json`);
       }
 
       if (format === "text" || format === "all") {
-        const textDir = path.join(OUTPUT_DIR, "text");
-        await fs.ensureDir(textDir);
-
-        const textFilePath = path.join(textDir, `${safeFilename}.txt`);
-        await fs.writeFile(textFilePath, textContent);
-
-        logger.fileSystem("write", textFilePath, {
+        logger.info(`Processed content in TEXT format for ${normalizedRoute}`);
+        
+        logger.debug("Text content prepared", {
           format: "text",
           size: Buffer.byteLength(textContent),
+          route: normalizedRoute
         });
-
-        logger.info(`Generated text file: output/text/${safeFilename}.txt`);
       }
 
       if (format === "markdown" || format === "all") {
-        const markdownDir = path.join(OUTPUT_DIR, "markdown");
-        await fs.ensureDir(markdownDir);
-
-        const markdownFilePath = path.join(markdownDir, `${safeFilename}.md`);
-        await fs.writeFile(markdownFilePath, markdownContent);
-
-        logger.fileSystem("write", markdownFilePath, {
+        logger.info(`Processed content in MARKDOWN format for ${normalizedRoute}`);
+        
+        logger.debug("Markdown content prepared", {
           format: "markdown",
           size: Buffer.byteLength(markdownContent),
+          route: normalizedRoute
         });
-
-        logger.info(
-          `Generated markdown file: output/markdown/${safeFilename}.md`
-        );
       }
     } catch (fileError) {
       logger.error(`File system error: ${fileError.message}`, {
@@ -370,7 +292,7 @@ async function generateFilesForRoute(baseUrl, route, format = DEFAULT_FORMAT) {
       throw new Error(`Failed to save output files: ${fileError.message}`);
     }
 
-    logger.info(`Generated files for ${fullUrl}`);
+    logger.info(`Successfully processed content for ${fullUrl}`);
     logger.endOperation(routeContext, "success", {
       formats:
         format === "all" ? VALID_FORMATS.filter((f) => f !== "all") : [format],
@@ -380,7 +302,8 @@ async function generateFilesForRoute(baseUrl, route, format = DEFAULT_FORMAT) {
     return {
       route: normalizedRoute,
       url: fullUrl,
-      data: jsonData
+      data: jsonData,
+      success: true
     };
   } catch (error) {
     logger.error(
@@ -496,10 +419,7 @@ async function processRoutes(options = {}) {
     format = arguments[2] || DEFAULT_FORMAT;
   }
   
-  // Override OUTPUT_DIR if specified
-  if (outputDir) {
-    OUTPUT_DIR = outputDir;
-  }
+  // outputDir parameter is ignored as file output is disabled
   
   // Input validation
   if (!baseUrl) {
@@ -616,8 +536,8 @@ if (require.main === module) {
         const url = args[0];
         const format = args[1] && VALID_FORMATS.includes(args[1]) ? args[1] : DEFAULT_FORMAT;
         
-        const result = await processSinglePage(url, format);
-        logger.info(`\nGenerated files for page: ${url}\nCheck the output directory: ${OUTPUT_DIR}`);
+        await processSinglePage(url, format);
+        logger.info(`Successfully processed page: ${url}`);
       } 
       // Look for routes file
       else {
@@ -647,7 +567,7 @@ if (require.main === module) {
               routePath: routesFilePath,
               format: format
             });
-            logger.info(`\nAll routes from file processed. Check the output directory: ${OUTPUT_DIR}`);
+            logger.info(`Successfully processed routes from file: ${routesFilePath}`);
           } catch (error) {
             console.error(`\x1b[31mError loading routes file: ${error.message}\x1b[0m`);
             process.exit(1);
@@ -665,7 +585,7 @@ if (require.main === module) {
             routes: routes,
             format: format
           });
-          logger.info(`\nAll routes processed. Check the output directory: ${OUTPUT_DIR}`);
+          logger.info(`Successfully processed ${results.length} routes without file downloads`);
         }
       }
     } catch (error) {

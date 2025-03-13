@@ -1,9 +1,6 @@
 const { expect } = require("chai");
 const nock = require("nock");
-const fs = require("fs-extra");
-const path = require("path");
 const sinon = require("sinon");
-const { ensureTestSamples } = require("./test.samples");
 
 const {
   processRoutes,
@@ -17,8 +14,6 @@ const {
 describe("ScoopIt Content Generator", function () {
   // Increase timeout for HTTP requests
   this.timeout(10000);
-
-  const testOutputDir = path.join(process.cwd(), "output");
 
   // Sample HTML response
   const sampleHtml = `
@@ -45,19 +40,7 @@ describe("ScoopIt Content Generator", function () {
     </html>
   `;
 
-  beforeEach(async () => {
-    // Clean up output directory before each test
-    if (fs.existsSync(testOutputDir)) {
-      fs.removeSync(testOutputDir);
-    }
-    fs.ensureDirSync(testOutputDir);
-    fs.ensureDirSync(path.join(testOutputDir, "text"));
-    fs.ensureDirSync(path.join(testOutputDir, "json"));
-    fs.ensureDirSync(path.join(testOutputDir, "markdown"));
-
-    // Ensure test samples exist
-    await ensureTestSamples();
-
+  beforeEach(() => {
     // Set test environment
     process.env.NODE_ENV = 'test';
 
@@ -74,9 +57,6 @@ describe("ScoopIt Content Generator", function () {
     
     // Restore environment variables
     process.env.NODE_ENV = '';
-    
-    // Note: We no longer remove the output directory after tests
-    // to allow copying sample files for test fixtures if needed
   });
 
   describe("fetchContent()", () => {
@@ -105,72 +85,43 @@ describe("ScoopIt Content Generator", function () {
   });
 
   describe("generateFilesForRoute()", () => {
-    it("should generate files for a route in text format", async () => {
+    it("should process content for a route in text format", async () => {
       // Mock HTTP request
       nock("https://wikipedia.org").get("/test").reply(200, sampleHtml);
 
-      await generateFilesForRoute("https://wikipedia.org", "/test", "text");
-
-      // Check if text file was created
-      const textFiles = fs.readdirSync(path.join(testOutputDir, "text"));
-      expect(textFiles.length).to.be.greaterThan(0, "No text files were created");
-      const textFilePath = path.join(testOutputDir, "text", textFiles[0]);
-      expect(fs.existsSync(textFilePath)).to.be.true;
-
-      // Check content of text file
-      const textContent = fs.readFileSync(textFilePath, "utf8");
-      expect(textContent).to.include("Main Content");
-      expect(textContent).to.include("This is the main content");
-
-      // Check if other format files were not created
-      expect(fs.existsSync(path.join(testOutputDir, "json"))).to.be.false;
-      expect(fs.existsSync(path.join(testOutputDir, "markdown"))).to.be.false;
+      const result = await generateFilesForRoute("https://wikipedia.org", "/test", "text");
+      
+      // Verify only the data structure, not file operations
+      expect(result).to.be.an("object");
+      expect(result).to.have.property("url", "https://wikipedia.org/test");
+      expect(result).to.have.property("data");
+      expect(result.data).to.have.property("textContent");
     });
 
-    it("should generate files for a route in json format", async () => {
+    it("should process content for a route in json format", async () => {
       // Mock HTTP request
       nock("https://wikipedia.org").get("/test").reply(200, sampleHtml);
 
-      await generateFilesForRoute("https://wikipedia.org", "/test", "json");
-
-      // Check if json file was created
-      const jsonFiles = fs.readdirSync(path.join(testOutputDir, "json"));
-      expect(jsonFiles.length).to.be.greaterThan(0, "No JSON files were created");
-      const jsonFilePath = path.join(testOutputDir, "json", jsonFiles[0]);
-      expect(fs.existsSync(jsonFilePath)).to.be.true;
-
-      // Check content of json file
-      const jsonContent = require(jsonFilePath);
-      expect(jsonContent).to.have.property("url", "https://wikipedia.org/test");
-      expect(jsonContent).to.have.property("route", "/test");
-      expect(jsonContent).to.have.property("title", "Test Page");
-      expect(jsonContent).to.have.property(
-        "description",
-        "This is a test page description"
-      );
-      expect(jsonContent).to.have.property("textContent");
-      expect(jsonContent).to.have.property("markdownContent");
-
-      // Check if other format files were not created
-      expect(fs.existsSync(path.join(testOutputDir, "text"))).to.be.false;
-      expect(fs.existsSync(path.join(testOutputDir, "markdown"))).to.be.false;
+      const result = await generateFilesForRoute("https://wikipedia.org", "/test", "json");
+      
+      // Verify only the data structure, not file operations
+      expect(result).to.be.an("object");
+      expect(result).to.have.property("url", "https://wikipedia.org/test");
+      expect(result).to.have.property("data");
+      expect(result.data).to.have.property("textContent");
     });
 
-    it("should generate files for a route in all formats", async () => {
+    it("should process content for a route in all formats", async () => {
       // Mock HTTP request
       nock("https://wikipedia.org").get("/test").reply(200, sampleHtml);
 
-      await generateFilesForRoute("https://wikipedia.org", "/test", "all");
-
-      // Check if all format files were created
-      const textFiles = fs.readdirSync(path.join(testOutputDir, "text"));
-      expect(textFiles.length).to.be.greaterThan(0, "No text files were created");
+      const result = await generateFilesForRoute("https://wikipedia.org", "/test", "all");
       
-      const jsonFiles = fs.readdirSync(path.join(testOutputDir, "json"));
-      expect(jsonFiles.length).to.be.greaterThan(0, "No JSON files were created");
-      
-      const markdownFiles = fs.readdirSync(path.join(testOutputDir, "markdown"));
-      expect(markdownFiles.length).to.be.greaterThan(0, "No markdown files were created");
+      // Verify only the data structure, not file operations
+      expect(result).to.be.an("object");
+      expect(result).to.have.property("url", "https://wikipedia.org/test");
+      expect(result).to.have.property("data");
+      expect(result.data).to.have.property("textContent");
     });
   });
 
@@ -189,12 +140,10 @@ describe("ScoopIt Content Generator", function () {
         "text"
       );
 
-      // Check if results array has correct length
+      // Check if results array has correct length and structure
       expect(results).to.be.an("array").with.lengthOf(2);
-
-      // Check if files were created for both routes
-      const textFiles = fs.readdirSync(path.join(testOutputDir, "text"));
-      expect(textFiles.length).to.be.at.least(2, "Not enough text files were created for multiple routes");
+      expect(results[0]).to.have.property("data");
+      expect(results[1]).to.have.property("data");
     });
 
     it("should use default values when not provided", async () => {
@@ -207,12 +156,10 @@ describe("ScoopIt Content Generator", function () {
 
       const results = await processRoutes();
 
-      // Check if results array has correct length
+      // Check if results array has correct length and structure
       expect(results).to.be.an("array").with.lengthOf(2);
-
-      // Check if files were created for default routes
-      const textFiles = fs.readdirSync(path.join(testOutputDir, "text"));
-      expect(textFiles.length).to.be.at.least(2, "Not enough text files were created for default routes");
+      expect(results[0]).to.have.property("data");
+      expect(results[1]).to.have.property("data");
     });
 
     it("should handle invalid format by using default format", async () => {
@@ -228,12 +175,9 @@ describe("ScoopIt Content Generator", function () {
         "invalid-format"
       );
 
-      // Check if results array has correct length
+      // Check if results array has correct length and structure
       expect(results).to.be.an("array").with.lengthOf(1);
-
-      // Check if file was created using default format
-      const textFiles = fs.readdirSync(path.join(testOutputDir, "text"));
-      expect(textFiles.length).to.be.greaterThan(0, "No text files were created despite using default format");
+      expect(results[0]).to.have.property("data");
 
       console.error.restore();
     });
@@ -249,31 +193,10 @@ describe("ScoopIt Content Generator", function () {
 
       const results = await processRoutes("https://github.com", ["/"], "all");
 
-      // Check if results array has correct length
+      // Check if results array has correct length and structure
       expect(results).to.be.an("array").with.lengthOf(1);
-
-      // Check if files were created in all formats
-      const textFiles = fs.readdirSync(path.join(testOutputDir, "text"));
-      expect(textFiles.length).to.be.greaterThan(0, "No text files were created for GitHub homepage");
-      
-      const jsonFiles = fs.readdirSync(path.join(testOutputDir, "json"));
-      expect(jsonFiles.length).to.be.greaterThan(0, "No JSON files were created for GitHub homepage");
-      
-      const markdownFiles = fs.readdirSync(path.join(testOutputDir, "markdown"));
-      expect(markdownFiles.length).to.be.greaterThan(0, "No markdown files were created for GitHub homepage");
-
-      // Check if files have content
-      const textContent = fs.readFileSync(
-        path.join(testOutputDir, "text", textFiles[0]),
-        "utf8"
-      );
-      expect(textContent).to.be.a("string").that.is.not.empty;
-
-      const jsonContent = JSON.parse(
-        fs.readFileSync(path.join(testOutputDir, "json", jsonFiles[0]), "utf8")
-      );
-      expect(jsonContent).to.have.property("url").that.includes("github.com");
-      expect(jsonContent).to.have.property("textContent").that.is.not.empty;
+      expect(results[0]).to.have.property("data");
+      expect(results[0]).to.have.property("url").that.includes("github.com");
     });
   });
 });

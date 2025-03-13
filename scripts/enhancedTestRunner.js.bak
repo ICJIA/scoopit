@@ -486,6 +486,7 @@ function displayFileStatistics() {
     console.log(`  • Total size: ${formatBytes(totalSize)}`);
     console.log(`  • Total tokens (approx): ${totalTokens.toLocaleString()}`);
     console.log('='.repeat(100));
+  }
 }
 
 /**
@@ -732,4 +733,3 @@ async function main() {
 
 // Run the main function
 main();
-}

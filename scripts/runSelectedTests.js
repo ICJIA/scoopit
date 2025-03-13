@@ -17,6 +17,13 @@ const fs = require('fs');
 // Define available test scripts
 const testScripts = [
   { 
+    id: 'simplified', 
+    name: 'Simplified Tests',
+    command: 'npm',
+    args: ['run', 'test:simplified'],
+    description: 'Simplified tests with no file validation'
+  },
+  { 
     id: 'unit', 
     name: 'Unit Tests',
     command: 'npm',
@@ -35,7 +42,7 @@ const testScripts = [
     name: 'Output Validation Tests',
     command: 'node',
     args: ['scripts/testRunner.js', '--validation-only'],
-    description: 'Validates generated output files are correct'
+    description: 'Validates generated output files are correct (DEPRECATED)'
   },
   { 
     id: 'live', 
