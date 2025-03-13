@@ -1,6 +1,6 @@
 # ScoopIt
 
-A Node.js web application that scoops content from a series of routes for a specified website or API. ScoopIt fetches content and saves it in multiple formats (text, JSON, and markdown) with comprehensive testing and logging capabilities. It supports both HTML web pages and JSON API responses.
+A Node.js web application that 'scoops' content from a series of routes for a specified website or API. ScoopIt fetches content and saves it in multiple formats (text, JSON, and markdown) with comprehensive testing and logging capabilities. It supports both HTML web pages and JSON API responses.
 
 ## AI Development Use Cases
 
