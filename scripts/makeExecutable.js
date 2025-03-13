@@ -27,6 +27,7 @@ const filesToChange = [
   path.join(__dirname, "testRunner.js"),
   path.join(__dirname, "verifyOutputs.js"),
   path.join(__dirname, "runAllTests.js"),
+  path.join(__dirname, "runSelectedTests.js"),
   path.join(process.cwd(), "cli.js"),
   path.join(process.cwd(), "test", "quickTest.js"),
 ];

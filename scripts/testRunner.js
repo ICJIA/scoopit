@@ -345,15 +345,15 @@ async function validateOutputFiles() {
           }
           
           if (fs.existsSync(filePath)) {
-          const stats = fs.statSync(filePath);
-          const fileSize = stats.size;
+            const stats = fs.statSync(filePath);
+            const fileSize = stats.size;
 
-          if (fileSize > 0) {
-            // Read file content
-            const content = fs.readFileSync(filePath, "utf8");
+            if (fileSize > 0) {
+              // Read file content
+              const content = fs.readFileSync(filePath, "utf8");
             
-            // If JSON, validate structure and content
-            if (format === "json") {
+              // If JSON, validate structure and content
+              if (format === "json") {
               try {
                 const jsonContent = JSON.parse(content);
 
@@ -434,13 +434,13 @@ async function validateOutputFiles() {
                 `Validated ${format} file: ${safeRoute}.${extension} (${formatBytes(fileSize)})`
               );
               testResults.outputValidation.passed++;
+                          }
+            } else {
+              throw new Error("File exists but is empty");
             }
           } else {
-            throw new Error("File exists but is empty");
+            throw new Error("File does not exist");
           }
-        } else {
-          throw new Error("File does not exist");
-        }
       } catch (error) {
         printResult(
           false,
@@ -456,6 +456,11 @@ async function validateOutputFiles() {
         });
       }
     }
+  }
+  } catch (error) {
+    printResult(false, "Output validation failed", error.message);
+    testResults.outputValidation.failed++;
+    return false;
   }
 
   // Overall validation result

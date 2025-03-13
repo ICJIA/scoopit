@@ -2,6 +2,93 @@
 
 A Node.js web application that generates content files from a series of routes from a specified website or API. ScoopIt fetches content and saves it in multiple formats (text, JSON, and markdown) with comprehensive testing and logging capabilities. It supports both HTML web pages and JSON API responses.
 
+## Use Case: Content for LLM Context
+
+### Why Use ScoopIt for LLM Context
+
+Large Language Models (LLMs) like GPT-4 and others perform best when provided with well-structured, relevant context. ScoopIt offers several key advantages for gathering and preparing website content for LLM context:
+
+#### 1. Structured Data Extraction
+
+ScoopIt intelligently extracts and formats content from websites and APIs, ensuring that LLMs receive clean, structured data without irrelevant UI elements, navigation menus, footers, or other noise that might confuse the model.
+
+#### 2. Content Format Flexibility
+
+By providing content in multiple formats (text, JSON, markdown), ScoopIt gives you options for how to best present information to an LLM:
+
+- **Plain text** for simple, direct content
+- **JSON** for structured data with metadata that can help the LLM understand relationships
+- **Markdown** for preserving content hierarchy and formatting
+
+#### 3. Batch Processing
+
+Instead of manually downloading individual pages, ScoopIt can process an entire site or specific sections based on your routes configuration, making it efficient to gather comprehensive information about a topic or domain.
+
+#### 4. API Integration
+
+ScoopIt's ability to process JSON API responses means you can easily incorporate dynamic data sources into your LLM context, giving models access to the latest information from your systems.
+
+#### 5. Content Preprocessing
+
+By extracting only relevant content and removing boilerplate HTML, ScoopIt helps you stay within LLM context windows more efficiently, focusing on the information that matters rather than wasting tokens on page structure.
+
+### Example LLM Integration Workflow
+
+1. Define the routes for the website sections relevant to your use case
+2. Run ScoopIt to extract and format the content
+3. Process the generated files as needed (e.g., chunking, embedding)
+4. Feed the processed content to your LLM as context for queries
+
+This approach enables more accurate, relevant responses from LLMs by providing them with clean, structured data about your specific domain.
+
+## Programmatic Usage
+
+ScoopIt can be used programmatically in your Node.js applications:
+
+```javascript
+const scoopit = require('scoopit');
+
+// Process a single web page
+async function processSinglePage() {
+  try {
+    const result = await scoopit.processSinglePage('https://example.com/page', 'json');
+    console.log(`Page processed: ${result.url}`);
+    console.log(`Content length: ${result.data.textContent.length} characters`);
+  } catch (error) {
+    console.error('Error processing page:', error);
+  }
+}
+
+// Process multiple routes from a website
+async function processMultipleRoutes() {
+  const baseUrl = 'https://example.com';
+  const routes = ['/about', '/contact', '/products'];
+  
+  try {
+    const results = await scoopit.processRoutes(baseUrl, routes, 'all');
+    console.log(`Processed ${results.length} routes successfully`);
+  } catch (error) {
+    console.error('Error processing routes:', error);
+  }
+}
+
+// Extract content without saving files
+async function extractContentOnly() {
+  try {
+    const content = await scoopit.fetchContent('https://example.com');
+    if (content) {
+      // You can use other utilities from the library to process content
+      // without saving files
+      const { extractContent, convertToMarkdown } = require('scoopit/utils/contentProcessor');
+      const { textContent } = extractContent(content);
+      console.log('Extracted text content:', textContent);
+    }
+  } catch (error) {
+    console.error('Error extracting content:', error);
+  }
+}
+```
+
 ## Features
 
 - **Content Extraction**: Fetches and extracts content from any web page or JSON API endpoint
@@ -417,96 +504,30 @@ Example:
 LOG_LEVEL=debug npm start
 ```
 
-## Use Case: Content for LLM Context
 
-### Why Use ScoopIt for LLM Context
-
-Large Language Models (LLMs) like GPT-4 and others perform best when provided with well-structured, relevant context. ScoopIt offers several key advantages for gathering and preparing website content for LLM context:
-
-#### 1. Structured Data Extraction
-
-ScoopIt intelligently extracts and formats content from websites and APIs, ensuring that LLMs receive clean, structured data without irrelevant UI elements, navigation menus, footers, or other noise that might confuse the model.
-
-#### 2. Content Format Flexibility
-
-By providing content in multiple formats (text, JSON, markdown), ScoopIt gives you options for how to best present information to an LLM:
-
-- **Plain text** for simple, direct content
-- **JSON** for structured data with metadata that can help the LLM understand relationships
-- **Markdown** for preserving content hierarchy and formatting
-
-#### 3. Batch Processing
-
-Instead of manually downloading individual pages, ScoopIt can process an entire site or specific sections based on your routes configuration, making it efficient to gather comprehensive information about a topic or domain.
-
-#### 4. API Integration
-
-ScoopIt's ability to process JSON API responses means you can easily incorporate dynamic data sources into your LLM context, giving models access to the latest information from your systems.
-
-#### 5. Content Preprocessing
-
-By extracting only relevant content and removing boilerplate HTML, ScoopIt helps you stay within LLM context windows more efficiently, focusing on the information that matters rather than wasting tokens on page structure.
-
-### Example LLM Integration Workflow
-
-1. Define the routes for the website sections relevant to your use case
-2. Run ScoopIt to extract and format the content
-3. Process the generated files as needed (e.g., chunking, embedding)
-4. Feed the processed content to your LLM as context for queries
-
-This approach enables more accurate, relevant responses from LLMs by providing them with clean, structured data about your specific domain.
-
-## Programmatic Usage
-
-ScoopIt can be used programmatically in your Node.js applications:
-
-```javascript
-const scoopit = require('scoopit');
-
-// Process a single web page
-async function processSinglePage() {
-  try {
-    const result = await scoopit.processSinglePage('https://example.com/page', 'json');
-    console.log(`Page processed: ${result.url}`);
-    console.log(`Content length: ${result.data.textContent.length} characters`);
-  } catch (error) {
-    console.error('Error processing page:', error);
-  }
-}
-
-// Process multiple routes from a website
-async function processMultipleRoutes() {
-  const baseUrl = 'https://example.com';
-  const routes = ['/about', '/contact', '/products'];
-  
-  try {
-    const results = await scoopit.processRoutes(baseUrl, routes, 'all');
-    console.log(`Processed ${results.length} routes successfully`);
-  } catch (error) {
-    console.error('Error processing routes:', error);
-  }
-}
-
-// Extract content without saving files
-async function extractContentOnly() {
-  try {
-    const content = await scoopit.fetchContent('https://example.com');
-    if (content) {
-      // You can use other utilities from the library to process content
-      // without saving files
-      const { extractContent, convertToMarkdown } = require('scoopit/utils/contentProcessor');
-      const { textContent } = extractContent(content);
-      console.log('Extracted text content:', textContent);
-    }
-  } catch (error) {
-    console.error('Error extracting content:', error);
-  }
-}
-```
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+### Running the Interactive Test Runner
+
+ScoopIt comes with an interactive test runner that allows you to choose which tests to run:
+
+```bash
+# Run the interactive test selector
+npm run test:select
+
+# Run specific tests directly
+npm run test:select -- unit
+npm run test:select -- integration
+npm run test:select -- live
+
+# Run multiple test types
+npm run test:select -- unit integration
+```
+
+The test runner will display a menu of available tests, execute your selection, and provide detailed results with statistics for each test.
 
 ## Docker Deployment
 

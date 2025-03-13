@@ -11,7 +11,7 @@ const {
 
 // Default configuration
 const DEFAULT_BASE_URL = "https://icjia.illinois.gov";
-const DEFAULT_ROUTES = ["/about", "researchHub"];
+const DEFAULT_ROUTES = ["/about", "/researchHub"];
 const DEFAULT_FORMAT = "text"; // Default format is 'text'
 const VALID_FORMATS = ["text", "json", "markdown", "all"]; // Valid output formats
 
