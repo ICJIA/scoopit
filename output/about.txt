@@ -1,0 +1,3 @@
+Fallback text content for /about
+
+This is fallback content for testing.

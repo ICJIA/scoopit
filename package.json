@@ -1,0 +1,84 @@
+{
+  "name": "scoopit",
+  "version": "1.0.0",
+  "description": "A tool that generates content files from website routes in multiple formats (text, JSON, markdown)",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "cli.js",
+    "src/**/*",
+    "utils/**/*"
+  ],
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "cli": "node cli.js",
+    "banners": "node src/ui/list-banners.js",
+    "banner-list": "node src/ui/list-banners.js",
+    
+    "test": "node scripts/testRunner.js",
+    "test:unit": "mocha --reporter spec test/**/*.js",
+    "test:integration": "node scripts/testRunner.js --integration-only",
+    "test:validation": "node scripts/testRunner.js --validation-only",
+    "test:verbose": "SCOOPIT_VERBOSE=true node scripts/testRunner.js",
+    "test:quiet": "SCOOPIT_VERBOSE=0 node scripts/testRunner.js",
+    "test:live": "node scripts/liveTest.js",
+    "test:live-site": "node scripts/liveTest.js --site=https://icjia.illinois.gov",
+    "test:live-verbose": "node scripts/liveTest.js --verbose",
+    "test:all": "node scripts/runAllTests.js",
+    "test:all-verbose": "NODE_ENV=test SCOOPIT_VERBOSE=true node scripts/runAllTests.js",
+    
+    "verify": "node scripts/verifyOutputs.js",
+    "samples": "node scripts/copyTestSamples.js",
+    "postinstall": "node scripts/makeExecutable.js",
+    "make-executable": "node scripts/makeExecutable.js",
+    
+    "prepublishOnly": "npm test"
+  },
+  "bin": {
+    "scoopit": "./cli.js",
+    "scoopit-banners": "./src/ui/list-banners.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/scoopit.git"
+  },
+  "keywords": [
+    "web-scraping",
+    "content-generation",
+    "markdown",
+    "json",
+    "text",
+    "html",
+    "llm-context",
+    "scraper",
+    "content-extraction",
+    "web-content"
+  ],
+  "author": "Your Name <your.email@example.com> (https://yourusername.com)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yourusername/scoopit/issues"
+  },
+  "homepage": "https://github.com/yourusername/scoopit#readme",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12",
+    "turndown": "^7.1.2",
+    "fs-extra": "^11.1.1",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "chai": "^4.3.10",
+    "mocha": "^10.2.0",
+    "nock": "^13.3.8",
+    "nodemon": "^3.0.1",
+    "sinon": "^17.0.1"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+}

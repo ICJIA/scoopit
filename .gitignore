@@ -1,0 +1,61 @@
+# Node.js
+node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Distribution
+dist/
+build/
+
+# Optional npm cache
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Environment variables
+.env
+.env.*
+!.env.sample
+
+# Editor and IDE files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Output directory - contains generated content
+/output/
+/output/**/*
+
+# Downloaded or generated files in the root directory ONLY (using / prefix to ensure only root level)
+/*.md
+/*.txt
+/*.json
+
+# Do NOT ignore these specific root files
+!README.md
+!package.json
+!package-lock.json
+!yarn.lock
+!routes.json
+!index.js
+!cli.js
+
+# Make sure nothing in the test directory is ignored
+!/test/
+!/test/**/*
+!/test/**/*.md
+!/test/**/*.txt
+!/test/**/*.json

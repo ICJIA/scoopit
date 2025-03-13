@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  scoopit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./output:/app/output
+      - ./routes.json:/app/routes.json
+    tty: true
+    stdin_open: true
+    # Uncomment and modify the command below to run with specific arguments
+    # command: ["https://example.com", "json"]
