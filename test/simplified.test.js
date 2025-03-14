@@ -1,6 +1,7 @@
 const { expect } = require('chai');
 const nock = require('nock');
 const sinon = require('sinon');
+const { setupTestEnvironment } = require('./helpers/setup');
 
 const {
   processRoutes,
@@ -10,6 +11,9 @@ const {
   DEFAULT_ROUTES,
   DEFAULT_FORMAT
 } = require('../index');
+
+// Setup test environment before running tests
+setupTestEnvironment();
 
 describe('ScoopIt Simplified Tests', function() {
   // Increase timeout for HTTP requests

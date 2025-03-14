@@ -1,36 +1,9 @@
+
 # ScoopIt
 
 A Node.js web application that 'scoops' content from a series of routes for a specified website or API. ScoopIt fetches content and saves it in multiple formats (text, JSON, and markdown) with comprehensive testing and logging capabilities. It supports both HTML web pages and JSON API responses.
 
-## AI Development Use Cases
-
-ScoopIt was designed to simplify and enhance AI development workflows, particularly those involving Large Language Models (LLMs). By providing clean, structured data extraction from websites, ScoopIt solves several key challenges in AI application development:
-
-### Building Domain-Specific AI Assistants
-
-One of the most powerful applications for ScoopIt is in building domain-specific chatbots and assistants that need expertise in particular subjects. For example:
-
-**Case Study: Legal Compliance Assistant**
-A legal tech company needed to build an assistant that could answer questions about regulatory compliance across multiple jurisdictions. Using ScoopIt, they:
-
-1. Extracted clean content from 50+ government regulatory websites
-2. Converted complex legal HTML documents into structured text and markdown
-3. Processed and chunked the content into appropriate context sizes
-4. Created embeddings for vector search
-5. Built a retrieval system that provided the LLM with only the most relevant regulatory information
-
-This approach resulted in an assistant that could accurately answer complex compliance questions with 87% higher accuracy than using generic web content, while providing proper citations to source material.
-
-**Case Study: Healthcare Research Tool**
-A medical research organization created a tool to help doctors stay current with the latest research:
-
-1. Used ScoopIt to extract content from medical journals and research databases
-2. Scheduled regular updates using ScoopIt's Docker container to keep information current
-3. Removed navigation elements, ads, and irrelevant content automatically
-4. Created structured JSON that preserved relationships between studies, authors, and findings
-5. Built a retrieval system that could respond to complex medical queries with relevant, recent research
-
-By using ScoopIt to clean and structure the data before sending it to the LLM, the system achieved significantly higher accuracy in medical domain knowledge.
+ScoopIt was designed to simplify and enhance AI development workflows, particularly those involving Large Language Models (LLMs). By providing clean, structured data extraction from websites, ScoopIt enables more efficient context provision for LLMs, improving the accuracy and relevance of AI-generated responses.
 
 ## Scoopit Overview
 
@@ -68,45 +41,51 @@ This approach enables more accurate, relevant responses from your AI application
 ScoopIt can be used programmatically in your Node.js applications:
 
 ```javascript
-const scoopit = require('scoopit');
+const scoopit = require("scoopit");
 
 // Process a single web page
 async function processSinglePage() {
   try {
-    const result = await scoopit.processSinglePage('https://example.com/page', 'json');
+    const result = await scoopit.processSinglePage(
+      "https://example.com/page",
+      "json"
+    );
     console.log(`Page processed: ${result.url}`);
     console.log(`Content length: ${result.data.textContent.length} characters`);
   } catch (error) {
-    console.error('Error processing page:', error);
+    console.error("Error processing page:", error);
   }
 }
 
 // Process multiple routes from a website
 async function processMultipleRoutes() {
-  const baseUrl = 'https://example.com';
-  const routes = ['/about', '/contact', '/products'];
-  
+  const baseUrl = "https://example.com";
+  const routes = ["/about", "/contact", "/products"];
+
   try {
-    const results = await scoopit.processRoutes(baseUrl, routes, 'all');
+    const results = await scoopit.processRoutes(baseUrl, routes, "all");
     console.log(`Processed ${results.length} routes successfully`);
   } catch (error) {
-    console.error('Error processing routes:', error);
+    console.error("Error processing routes:", error);
   }
 }
 
 // Extract content without saving files
 async function extractContentOnly() {
   try {
-    const content = await scoopit.fetchContent('https://example.com');
+    const content = await scoopit.fetchContent("https://example.com");
     if (content) {
       // You can use other utilities from the library to process content
       // without saving files
-      const { extractContent, convertToMarkdown } = require('scoopit/utils/contentProcessor');
+      const {
+        extractContent,
+        convertToMarkdown,
+      } = require("scoopit/utils/contentProcessor");
       const { textContent } = extractContent(content);
-      console.log('Extracted text content:', textContent);
+      console.log("Extracted text content:", textContent);
     }
   } catch (error) {
-    console.error('Error extracting content:', error);
+    console.error("Error extracting content:", error);
   }
 }
 ```
@@ -281,21 +260,21 @@ After global installation, you can use the `scoopit` command from anywhere.
 
 ScoopIt provides various command-line options to control its behavior:
 
-| Option       | Description                                     | Example                                    |
-|:-------------|:------------------------------------------------|:-------------------------------------------|
-| `[url]`      | Process a specific URL                          | `scoopit https://example.com`              |
-| `[format]`   | Output format (text, json, markdown, all)       | `scoopit https://example.com json`         |
-| `[file.json]`| JSON file containing routes to process          | `scoopit routes.json`                      |
-| `-routePath` | Path to a custom routes file                    | `scoopit -routePath ./custom-routes.json`  |
-| `[baseUrl]`  | Base URL for routes (with routes.json)          | `scoopit routes.json all https://example.com` |
+| Option        | Description                               | Example                                       |
+| :------------ | :---------------------------------------- | :-------------------------------------------- |
+| `[url]`       | Process a specific URL                    | `scoopit https://example.com`                 |
+| `[format]`    | Output format (text, json, markdown, all) | `scoopit https://example.com json`            |
+| `[file.json]` | JSON file containing routes to process    | `scoopit routes.json`                         |
+| `-routePath`  | Path to a custom routes file              | `scoopit -routePath ./custom-routes.json`     |
+| `[baseUrl]`   | Base URL for routes (with routes.json)    | `scoopit routes.json all https://example.com` |
 
 Additional options for environment variables:
 
-| Environment Variable | Description                           | Values                           |
-|:--------------------|:--------------------------------------|:---------------------------------|
-| `LOG_LEVEL`         | Controls logging verbosity            | error, warn, info (default), debug |
-| `SCOOPIT_VERBOSE`   | Enable verbose output for tests       | true, false                      |
-| `NODE_ENV`          | Application environment               | test, development, production    |
+| Environment Variable | Description                     | Values                             |
+| :------------------- | :------------------------------ | :--------------------------------- |
+| `LOG_LEVEL`          | Controls logging verbosity      | error, warn, info (default), debug |
+| `SCOOPIT_VERBOSE`    | Enable verbose output for tests | true, false                        |
+| `NODE_ENV`           | Application environment         | test, development, production      |
 
 ### Running via npx (No Installation)
 
@@ -430,13 +409,9 @@ ScoopIt uses a `routes.json` file to determine which routes to process. The appl
 5. If no `routes.json` is found, it falls back to default routes defined in the code
 
 Example `routes.json` file:
+
 ```json
-[
-  "/",
-  "/about",
-  "/products",
-  "/contact"
-]
+["/", "/about", "/products", "/contact"]
 ```
 
 ### Development Mode
@@ -457,53 +432,108 @@ All generated files are saved in the `output` directory in the current working d
 
 ## Testing
 
-ScoopIt includes a comprehensive testing suite that ensures the application works correctly across all formats and configurations.
+ScoopIt includes a comprehensive testing suite to ensure reliability and functionality. The tests are organized into different categories to validate various aspects of the application.
+
+### Test Types
+
+- **Unit Tests**: Test individual functions and components in isolation
+- **Integration Tests**: Test the interaction between multiple components, including live website scraping
+- **Validation Tests**: Verify the quality and structure of the generated output files
 
 ### Running Tests
 
 #### Run All Tests
 
-To run the complete test suite with default verbosity:
+To run the complete test suite:
 
 ```bash
 npm test
 ```
 
+This will execute unit tests, integration tests with live scraping, and output validation.
+
 #### Run Specific Test Types
 
 ```bash
-# Run only unit tests
+# Only run unit tests
 npm run test:unit
 
-# Run only integration tests
+# Only run integration tests (live scraping)
 npm run test:integration
 
-# Run only validation tests
+# Only run validation tests
 npm run test:validation
-```
 
-#### Adjust Test Output Verbosity
+# Run a simplified test suite (faster)
+npm run test:simplified
 
-```bash
-# Run tests with detailed output
+# Run tests with verbose output
 npm run test:verbose
 
 # Run tests with minimal output
 npm run test:quiet
 ```
 
-### Test Samples
+#### Live Website Testing
 
-The test suite includes static sample files for testing in the `test/samples` directory, categorized by format:
+Test against a live website to verify scraping functionality:
 
-- `test/samples/text/` - Plain text samples
-- `test/samples/json/` - JSON data samples
-- `test/samples/markdown/` - Markdown content samples
+```bash
+# Test against the default site
+npm run test:live
 
-To update or regenerate test samples:
+# Test against a specific site
+npm run test:live-site --site=https://example.com
+
+# Run live tests with verbose output
+npm run test:live-verbose
+```
+
+### Test Visualization
+
+During test execution, a spinner will display progress for long-running operations. The test runner displays a comprehensive summary report at the end with the following information:
+
+- Total tests passed/failed
+- Detailed breakdown by test type
+- Duration and performance metrics
+- Environment information
+
+### Troubleshooting Tests
+
+#### Missing Dependencies
+
+If you encounter dependency errors, run:
+
+```bash
+npm run check-deps
+```
+
+This will check for all required dependencies and provide instructions to install any missing ones.
+
+#### Common Issues
+
+1. **Puppeteer Issues**: Puppeteer is an optional dependency. If you need to test functionality that requires browser automation, install it with `npm install puppeteer`.
+
+2. **Test Timeouts**: For slow connections, increase the test timeout by setting the environment variable: `SCOOPIT_TEST_TIMEOUT=30000 npm test`
+
+3. **File Permission Issues**: If you encounter permission issues when generating output files, ensure your user has write permissions to the output directory.
+
+### Sample Data Management
+
+To update the sample test data:
 
 ```bash
 npm run samples
+```
+
+This copies the current output files to the test samples directory for future test reference.
+
+### CI/CD Integration
+
+The test suite is designed to work in CI/CD environments. Set the NODE_ENV environment variable to "test" to ensure consistent file naming patterns and to bypass interactive prompts:
+
+```bash
+NODE_ENV=test npm test
 ```
 
 ## Logging
@@ -516,17 +546,17 @@ The application includes a sophisticated logging system that provides detailed i
   - `error.log` - Error logs only
 
 Log levels can be configured by setting the `LOG_LEVEL` environment variable to one of:
+
 - `error`
 - `warn`
 - `info` (default)
 - `debug`
 
 Example:
+
 ```bash
 LOG_LEVEL=debug npm start
 ```
-
-
 
 ## Contributing
 
@@ -731,12 +761,7 @@ Here's a practical example of how to use Docker for automated content extraction
 1. Create a `routes.json` file with the routes you want to scrape:
 
 ```json
-[
-  "/",
-  "/about",
-  "/products",
-  "/blog"
-]
+["/", "/about", "/products", "/blog"]
 ```
 
 2. Create a shell script for scheduled execution (`run-extraction.sh`):
